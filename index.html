@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <title>C&amp;R Pricebook</title>
+
+  <!-- PWA / iPad Add-to-Home-Screen -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1A2738">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="C&amp;R Pricebook">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <style>
+    :root {
+      --navy:   #1A2738;
+      --orange: #F47B20;
+      --cream:  #F5E3B3;
+      --d1:     #607080;   /* One Dot  */
+      --d2:     #B8860B;   /* Two Dots */
+      --d3:     #2C3E50;   /* Three Dots */
+      --light:  #f8f9fa;
+      --border: #dee2e6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light);
+      color: var(--navy);
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ── SHARED HEADER ── */
+    .app-header {
+      background: var(--navy); color: #fff;
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .hdr-logo-main { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+    .hdr-logo-sub  { font-size: 11px; color: var(--cream); letter-spacing: .3px; margin-top: 2px; }
+    .mode-pill {
+      background: var(--orange); color: #fff;
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+      padding: 5px 12px; border-radius: 20px;
+    }
+
+    /* ── TECH ACTION BAR ── */
+    .tech-bar {
+      background: var(--navy);
+      padding: 0 16px 14px;
+      display: flex; gap: 10px;
+    }
+    .btn-present {
+      flex: 1; background: var(--orange); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 15px; font-size: 16px; font-weight: 700;
+      letter-spacing: .5px; cursor: pointer;
+    }
+    .btn-reset {
+      background: rgba(255,255,255,.1); color: #fff;
+      border: 1.5px solid rgba(255,255,255,.25);
+      border-radius: 10px; padding: 15px 18px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+
+    /* ── TECH FORM ── */
+    #tech-mode { padding: 14px; max-width: 860px; margin: 0 auto; }
+
+    .card {
+      background: #fff; border-radius: 12px;
+      padding: 18px; margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 1.4px; text-transform: uppercase;
+      color: var(--orange);
+      padding-bottom: 10px; border-bottom: 2px solid var(--cream); margin-bottom: 14px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fg label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #777; }
+
+    input[type="text"], input[type="number"], input[type="date"], select {
+      border: 1.5px solid var(--border); border-radius: 8px; padding: 12px 13px;
+      font-size: 16px; color: var(--navy); background: #fff; width: 100%;
+      -webkit-appearance: none; appearance: none; transition: border-color .15s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--orange); }
+
+    .dollar-wrap { position: relative; }
+    .dollar-wrap span {
+      position: absolute; left: 11px; top: 50%;
+      transform: translateY(-50%); color: #aaa; font-size: 16px; pointer-events: none;
+    }
+    .dollar-wrap input { padding-left: 22px; }
+
+    /* Tier accent labels */
+    .lbl-d1 { color: var(--d1); font-weight: 700; }
+    .lbl-d2 { color: var(--d2); font-weight: 700; }
+    .lbl-d3 { color: var(--d3); font-weight: 700; }
+
+    /* Discount table */
+    .disc-tbl { width: 100%; border-collapse: collapse; }
+    .disc-tbl th {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: #999; padding: 5px 6px; text-align: left;
+      border-bottom: 2px solid var(--cream);
+    }
+    .disc-tbl td { padding: 5px 4px; vertical-align: middle; }
+    .disc-tbl td:first-child { font-size: 14px; width: 38%; padding-right: 8px; }
+    .disc-tbl input { padding: 10px 11px; font-size: 15px; }
+    .disc-tbl .net { font-size: 13px; color: #888; text-align: right; padding: 0 4px; }
+    .disc-tbl .tot-row td { font-weight: 700; font-size: 14px; padding-top: 10px; border-top: 2px solid var(--cream); }
+
+    /* Toggle */
+    .tog-row  { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .tog-text { font-size: 15px; font-weight: 600; }
+    .tog { position: relative; width: 52px; height: 28px; }
+    .tog input { opacity: 0; width: 0; height: 0; }
+    .tog-sl {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc; border-radius: 28px; transition: .25s;
+    }
+    .tog-sl:before {
+      content: ''; position: absolute;
+      width: 22px; height: 22px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: .25s;
+    }
+    .tog input:checked + .tog-sl { background: var(--orange); }
+    .tog input:checked + .tog-sl:before { transform: translateX(24px); }
+
+    .club-savings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 6px; }
+    .club-sav-item { text-align: center; font-size: 13px; color: #28a745; }
+
+    /* Summary table */
+    .sum-tbl { width: 100%; border-collapse: collapse; }
+    .sum-tbl th {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: #999;
+      padding: 7px 8px; text-align: center; border-bottom: 2px solid var(--cream);
+    }
+    .sum-tbl th:first-child { text-align: left; }
+    .sum-tbl td { padding: 10px 8px; text-align: center; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    .sum-tbl td:first-child { text-align: left; font-weight: 700; }
+    .sum-mo { color: var(--orange); font-weight: 700; }
+
+    /* Term selects row */
+    .term-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .term-row .fg label { font-size: 11px; }
+
+    /* ── CUSTOMER MODE ── */
+    #customer-mode { display: none; background: #f0f0f0; min-height: 100vh; }
+    #customer-mode.active { display: block; }
+
+    .cust-bar { background: var(--navy); padding: 8px 16px 0; }
+    .btn-back {
+      background: rgba(255,255,255,.12); color: #fff;
+      border: 1.5px solid rgba(255,255,255,.3);
+      border-radius: 8px; padding: 9px 16px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      margin-bottom: 10px; display: inline-block;
+    }
+    .tier-tabs { display: flex; gap: 2px; }
+    .tier-tab {
+      flex: 1; background: transparent; color: rgba(255,255,255,.45);
+      border: none; border-bottom: 3px solid transparent;
+      padding: 13px 4px; font-size: 12px; font-weight: 700;
+      letter-spacing: .5px; cursor: pointer; transition: all .2s;
+    }
+    .tier-tab.active { color: #fff; border-bottom-color: var(--orange); }
+
+    /* Customer page */
+    .cp { display: none; }
+    .cp.active { display: block; }
+
+    .cp-hdr {
+      background: var(--navy); color: #fff;
+      padding: 28px 28px 50px; text-align: center;
+    }
+    .cp-hdr-tag   { font-size: 10px; letter-spacing: 2.5px; color: var(--cream); text-transform: uppercase; margin-bottom: 7px; }
+    .cp-hdr-co    { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+    .cp-hdr-since { font-size: 11px; color: var(--orange); letter-spacing: 1.5px; margin-top: 3px; }
+
+    .cp-cust-band {
+      background: var(--orange); color: #fff;
+      text-align: center; padding: 18px 24px;
+      margin-top: -22px; border-radius: 18px 18px 0 0;
+    }
+    .cp-prep { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; opacity: .8; margin-bottom: 4px; }
+    .cp-name { font-size: 26px; font-weight: 700; }
+    .cp-dets { font-size: 13px; opacity: .85; margin-top: 5px; }
+    .cp-adv  { font-size: 12px; opacity: .8; margin-top: 3px; }
+
+    .cp-body { background: #fff; padding: 22px; }
+
+    .cp-tier-badge { text-align: center; margin-bottom: 20px; }
+    .cp-tier-badge span {
+      display: inline-block; color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      padding: 7px 24px; border-radius: 20px;
+    }
+
+    .cp-invest {
+      text-align: center; padding: 16px 0;
+      border-top: 1px solid var(--cream); border-bottom: 1px solid var(--cream);
+      margin-bottom: 14px;
+    }
+    .cp-inv-lbl   { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 4px; }
+    .cp-inv-amt   { font-size: 40px; font-weight: 700; color: var(--navy); line-height: 1; margin-bottom: 8px; }
+    .cp-disc-line { font-size: 16px; color: #28a745; font-weight: 600; }
+    .cp-disc-name { font-size: 12px; color: #888; margin-top: 2px; }
+
+    .cp-final { text-align: center; padding: 20px 0 18px; border-bottom: 1px solid var(--cream); margin-bottom: 22px; }
+    .cp-final-lbl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 6px; }
+    .cp-final-amt { font-size: 52px; font-weight: 700; color: var(--orange); line-height: 1; }
+
+    .cp-fin { background: var(--light); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+    .cp-fin-ttl {
+      text-align: center; font-size: 10px;
+      letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 14px;
+    }
+    .cp-mo-opts { display: flex; gap: 10px; }
+    .cp-mo-card {
+      flex: 1; background: #fff;
+      border: 2px solid var(--navy); border-radius: 10px;
+      padding: 14px 6px; text-align: center;
+    }
+    .cp-mo-term { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--navy); text-transform: uppercase; }
+    .cp-mo-amt  { font-size: 22px; font-weight: 700; color: var(--orange); margin: 7px 0 2px; }
+    .cp-mo-per  { font-size: 10px; color: #aaa; }
+
+    .cp-footer {
+      background: var(--navy); color: var(--cream);
+      text-align: center; padding: 18px 20px; font-size: 11px; line-height: 1.9;
+    }
+    .cp-footer .tag { font-size: 13px; font-style: italic; color: #fff; margin-bottom: 5px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 540px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .term-row { grid-template-columns: 1fr; }
+      .cp-final-amt { font-size: 42px; }
+      .cp-inv-amt   { font-size: 32px; }
+      .cp-mo-amt    { font-size: 18px; }
+      .club-savings { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     TECH MODE
+═══════════════════════════════════════ -->
+<div id="tech-mode">
+
+  <div class="app-header">
+    <div>
+      <div class="hdr-logo-main">C&amp;R HEATING &amp; COOLING</div>
+      <div class="hdr-logo-sub">Pricebook Control Panel</div>
+    </div>
+    <div class="mode-pill">TECH</div>
+  </div>
+
+  <div class="tech-bar">
+    <button class="btn-present" onclick="showCustomer()">▶&nbsp; PRESENT TO CUSTOMER</button>
+    <button class="btn-reset"   onclick="resetForm()">↺ New</button>
+  </div>
+
+  <div id="tech-form">
+
+    <!-- CUSTOMER INFO -->
+    <div class="card">
+      <div class="card-title">Customer Information</div>
+      <div class="grid-2">
+        <div class="fg"><label>Customer Name</label>
+          <input type="text" id="custName" placeholder="Jane Doe" oninput="calc()"></div>
+        <div class="fg"><label>Comfort Advisor</label>
+          <input type="text" id="advisor" placeholder="Adam" oninput="calc()"></div>
+      </div>
+      <div class="grid-2">
+        <div class="fg"><label>Address</label>
+          <input type="text" id="address" placeholder="123 Main St" oninput="calc()"></div>
+        <div class="fg"><label>Phone</label>
+          <input type="text" id="phone" placeholder="903.530.1228" oninput="calc()"></div>
+      </div>
+      <div class="grid-2">
+        <div class="fg"><label>Job #</label>
+          <input type="text" id="jobNum" placeholder="12345" oninput="calc()"></div>
+        <div class="fg"><label>Date</label>
+          <input type="date" id="jobDate" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <!-- PACKAGE PRICES -->
+    <div class="card">
+      <div class="card-title">Package Prices — from ServiceTitan</div>
+      <div class="grid-3">
+        <div class="fg"><label class="lbl-d1">●</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="p1" placeholder="0" min="0" oninput="calc()"></div></div>
+        <div class="fg"><label class="lbl-d2">●●</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="p2" placeholder="0" min="0" oninput="calc()"></div></div>
+        <div class="fg"><label class="lbl-d3">●●●</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="p3" placeholder="0" min="0" oninput="calc()"></div></div>
+      </div>
+    </div>
+
+    <!-- DISCOUNTS -->
+    <div class="card">
+      <div class="card-title">Discounts</div>
+      <p style="font-size:12px;color:#999;margin-bottom:12px;">Offset adds to the customer-facing price — protects margin. Net Loss = Stated − Offset.</p>
+      <table class="disc-tbl">
+        <thead>
+          <tr><th>Discount Type</th><th>Stated ($)</th><th>Offset ($)</th><th style="text-align:right">Net Loss</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Veteran</td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d1s" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d1o" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td class="net" id="d1n">—</td></tr>
+          <tr><td>Holiday / Seasonal</td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d2s" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d2o" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td class="net" id="d2n">—</td></tr>
+          <tr><td>Coupon Book</td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d3s" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d3o" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td class="net" id="d3n">—</td></tr>
+          <tr><td>Other</td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d4s" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td><div class="dollar-wrap"><span>$</span><input type="number" id="d4o" placeholder="0" min="0" oninput="calc()"></div></td>
+            <td class="net" id="d4n">—</td></tr>
+          <tr class="tot-row">
+            <td>TOTALS</td>
+            <td id="totS" style="color:var(--navy)">$0</td>
+            <td id="totO" style="color:var(--navy)">$0</td>
+            <td class="net" id="totN">$0</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="grid-1" style="margin-top:14px;">
+        <div class="fg"><label>Discount Display Name (shown to customer)</label>
+          <input type="text" id="discName" placeholder="e.g. Veteran Discount" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <!-- CLUB MEMBER -->
+    <div class="card">
+      <div class="card-title">Club Member Discount (10% off parts)</div>
+      <div class="tog-row">
+        <label class="tog"><input type="checkbox" id="club" onchange="calc()"><span class="tog-sl"></span></label>
+        <span class="tog-text">Club Member</span>
+      </div>
+      <div class="grid-3">
+        <div class="fg"><label class="lbl-d1">● Parts Cost</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="pt1" placeholder="0" min="0" oninput="calc()"></div></div>
+        <div class="fg"><label class="lbl-d2">●● Parts Cost</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="pt2" placeholder="0" min="0" oninput="calc()"></div></div>
+        <div class="fg"><label class="lbl-d3">●●● Parts Cost</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="pt3" placeholder="0" min="0" oninput="calc()"></div></div>
+      </div>
+      <div class="club-savings">
+        <div class="club-sav-item">● savings: <strong id="cs1">$0</strong></div>
+        <div class="club-sav-item">●● savings: <strong id="cs2">$0</strong></div>
+        <div class="club-sav-item">●●● savings: <strong id="cs3">$0</strong></div>
+      </div>
+    </div>
+
+    <!-- FINANCING -->
+    <div class="card">
+      <div class="card-title">Financing (internal — not shown to customer)</div>
+      <div class="grid-2">
+        <div class="fg"><label>Master APR</label>
+          <select id="apr" onchange="calc()">
+            <option value="0.1299">12.99%</option>
+            <option value="0.1199">11.99%</option>
+            <option value="0.1099">10.99%</option>
+            <option value="0.0999">9.99%</option>
+            <option value="0.0899">8.99%</option>
+            <option value="0.0799">7.99%</option>
+            <option value="0.0699">6.99%</option>
+            <option value="0.0599">5.99%</option>
+            <option value="0.0499">4.99%</option>
+            <option value="0.0399">3.99%</option>
+            <option value="0.0299">2.99%</option>
+            <option value="0.0199">1.99%</option>
+            <option value="0">0% (same-as-cash)</option>
+          </select></div>
+        <div class="fg"><label>Down Payment (optional)</label>
+          <div class="dollar-wrap"><span>$</span>
+            <input type="number" id="down" placeholder="0" min="0" oninput="calc()"></div></div>
+      </div>
+      <p style="font-size:12px;color:#999;margin-bottom:10px;">Select the three payment terms to display to the customer:</p>
+      <div class="term-row">
+        <div class="fg"><label>Term 1 (shortest)</label>
+          <select id="term1" onchange="calc()"></select></div>
+        <div class="fg"><label>Term 2 (middle)</label>
+          <select id="term2" onchange="calc()"></select></div>
+        <div class="fg"><label>Term 3 (longest)</label>
+          <select id="term3" onchange="calc()"></select></div>
+      </div>
+    </div>
+
+    <!-- INTERNAL SUMMARY -->
+    <div class="card">
+      <div class="card-title">Internal Summary — What the Customer Will See</div>
+      <table class="sum-tbl">
+        <thead>
+          <tr><th>Package</th><th>Investment</th><th>Total Discount</th><th>Your Price</th><th>Best Monthly</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="lbl-d1">●</span></td>
+            <td id="s1Inv">$0</td><td id="s1Dis" style="color:#28a745;font-weight:600">$0</td>
+            <td id="s1Pri" style="font-weight:700">$0</td><td id="s1Mo" class="sum-mo">—</td>
+          </tr>
+          <tr>
+            <td><span class="lbl-d2">●●</span></td>
+            <td id="s2Inv">$0</td><td id="s2Dis" style="color:#28a745;font-weight:600">$0</td>
+            <td id="s2Pri" style="font-weight:700">$0</td><td id="s2Mo" class="sum-mo">—</td>
+          </tr>
+          <tr>
+            <td><span class="lbl-d3">●●●</span></td>
+            <td id="s3Inv">$0</td><td id="s3Dis" style="color:#28a745;font-weight:600">$0</td>
+            <td id="s3Pri" style="font-weight:700">$0</td><td id="s3Mo" class="sum-mo">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tech-form -->
+</div><!-- /tech-mode -->
+
+
+<!-- ═══════════════════════════════════════
+     CUSTOMER MODE
+═══════════════════════════════════════ -->
+<div id="customer-mode">
+
+  <div class="app-header">
+    <div>
+      <div class="hdr-logo-main">C&amp;R HEATING &amp; COOLING</div>
+      <div class="hdr-logo-sub">Taught by Fathers, Trusted by Families.</div>
+    </div>
+    <div class="mode-pill">PRESENTING</div>
+  </div>
+
+  <div class="cust-bar">
+    <button class="btn-back" onclick="showTech()">← Back to Tech</button>
+    <div class="tier-tabs">
+      <button class="tier-tab active" onclick="showTier('1',this)">●</button>
+      <button class="tier-tab"        onclick="showTier('2',this)">●●</button>
+      <button class="tier-tab"        onclick="showTier('3',this)">●●●</button>
+    </div>
+  </div>
+
+  <!-- ── ONE DOT PAGE ── -->
+  <div id="cp-1" class="cp active">
+    <div class="cp-hdr">
+      <div class="cp-hdr-tag">Taught by Fathers, Trusted by Families.</div>
+      <div class="cp-hdr-co">C&amp;R HEATING &amp; COOLING</div>
+      <div class="cp-hdr-since">Since 1996</div>
+    </div>
+    <div class="cp-cust-band">
+      <div class="cp-prep">Prepared Exclusively For</div>
+      <div class="cp-name" id="n1">—</div>
+      <div class="cp-dets" id="d1x">—</div>
+      <div class="cp-adv"  id="a1">—</div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-tier-badge"><span style="background:var(--d1)">●</span></div>
+      <div class="cp-invest">
+        <div class="cp-inv-lbl">Your Investment</div>
+        <div class="cp-inv-amt" id="inv1">$0</div>
+        <div class="cp-disc-line" id="dl1" style="display:none"></div>
+        <div class="cp-disc-name" id="dn1"></div>
+      </div>
+      <div class="cp-final">
+        <div class="cp-final-lbl">Your Price Today</div>
+        <div class="cp-final-amt" id="fin1">$0</div>
+      </div>
+      <div class="cp-fin">
+        <div class="cp-fin-ttl">Easy Monthly Payment Options</div>
+        <div class="cp-mo-opts">
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t1a-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t1a-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t1b-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t1b-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t1c-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t1c-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-footer">
+      <div class="tag">"Taught by Fathers, Trusted by Families."</div>
+      903.530.1228 &nbsp;•&nbsp; crhvacpro.com &nbsp;•&nbsp; Office@crhvacpro.com &nbsp;•&nbsp; TX License TACLB00137661E
+    </div>
+  </div>
+
+  <!-- ── TWO DOTS PAGE ── -->
+  <div id="cp-2" class="cp">
+    <div class="cp-hdr">
+      <div class="cp-hdr-tag">Taught by Fathers, Trusted by Families.</div>
+      <div class="cp-hdr-co">C&amp;R HEATING &amp; COOLING</div>
+      <div class="cp-hdr-since">Since 1996</div>
+    </div>
+    <div class="cp-cust-band">
+      <div class="cp-prep">Prepared Exclusively For</div>
+      <div class="cp-name" id="n2">—</div>
+      <div class="cp-dets" id="d2x">—</div>
+      <div class="cp-adv"  id="a2">—</div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-tier-badge"><span style="background:var(--d2)">●●</span></div>
+      <div class="cp-invest">
+        <div class="cp-inv-lbl">Your Investment</div>
+        <div class="cp-inv-amt" id="inv2">$0</div>
+        <div class="cp-disc-line" id="dl2" style="display:none"></div>
+        <div class="cp-disc-name" id="dn2"></div>
+      </div>
+      <div class="cp-final">
+        <div class="cp-final-lbl">Your Price Today</div>
+        <div class="cp-final-amt" id="fin2">$0</div>
+      </div>
+      <div class="cp-fin">
+        <div class="cp-fin-ttl">Easy Monthly Payment Options</div>
+        <div class="cp-mo-opts">
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t2a-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t2a-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t2b-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t2b-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t2c-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t2c-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-footer">
+      <div class="tag">"Taught by Fathers, Trusted by Families."</div>
+      903.530.1228 &nbsp;•&nbsp; crhvacpro.com &nbsp;•&nbsp; Office@crhvacpro.com &nbsp;•&nbsp; TX License TACLB00137661E
+    </div>
+  </div>
+
+  <!-- ── THREE DOTS PAGE ── -->
+  <div id="cp-3" class="cp">
+    <div class="cp-hdr">
+      <div class="cp-hdr-tag">Taught by Fathers, Trusted by Families.</div>
+      <div class="cp-hdr-co">C&amp;R HEATING &amp; COOLING</div>
+      <div class="cp-hdr-since">Since 1996</div>
+    </div>
+    <div class="cp-cust-band">
+      <div class="cp-prep">Prepared Exclusively For</div>
+      <div class="cp-name" id="n3">—</div>
+      <div class="cp-dets" id="d3x">—</div>
+      <div class="cp-adv"  id="a3">—</div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-tier-badge"><span style="background:var(--d3)">●●●</span></div>
+      <div class="cp-invest">
+        <div class="cp-inv-lbl">Your Investment</div>
+        <div class="cp-inv-amt" id="inv3">$0</div>
+        <div class="cp-disc-line" id="dl3" style="display:none"></div>
+        <div class="cp-disc-name" id="dn3"></div>
+      </div>
+      <div class="cp-final">
+        <div class="cp-final-lbl">Your Price Today</div>
+        <div class="cp-final-amt" id="fin3">$0</div>
+      </div>
+      <div class="cp-fin">
+        <div class="cp-fin-ttl">Easy Monthly Payment Options</div>
+        <div class="cp-mo-opts">
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t3a-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t3a-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t3b-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t3b-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+          <div class="cp-mo-card">
+            <div class="cp-mo-term" id="t3c-lbl">— MONTHS</div>
+            <div class="cp-mo-amt"  id="t3c-amt">$0</div>
+            <div class="cp-mo-per">per month</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-footer">
+      <div class="tag">"Taught by Fathers, Trusted by Families."</div>
+      903.530.1228 &nbsp;•&nbsp; crhvacpro.com &nbsp;•&nbsp; Office@crhvacpro.com &nbsp;•&nbsp; TX License TACLB00137661E
+    </div>
+  </div>
+
+</div><!-- /customer-mode -->
+
+
+<script>
+  /* ── BUILD TERM DROPDOWNS (12 → 180 in 12-mo steps) ── */
+  const TERMS = [];
+  for (let m = 12; m <= 180; m += 12) TERMS.push(m);
+
+  const DEFAULTS = { term1: 24, term2: 36, term3: 48 };
+
+  ['term1','term2','term3'].forEach(id => {
+    const sel = document.getElementById(id);
+    TERMS.forEach(mo => {
+      const opt = document.createElement('option');
+      opt.value = mo;
+      opt.textContent = mo + ' months';
+      if (mo === DEFAULTS[id]) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+
+  /* ── INIT ── */
+  document.getElementById('jobDate').valueAsDate = new Date();
+  calc();
+
+  /* ── SERVICE WORKER (offline support) ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.log('SW registration failed:', err);
+      });
+    });
+  }
+
+  /* ── MODE SWITCHING ── */
+  function showCustomer() {
+    document.getElementById('tech-mode').style.display = 'none';
+    document.getElementById('customer-mode').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function showTech() {
+    document.getElementById('tech-mode').style.display = 'block';
+    document.getElementById('customer-mode').classList.remove('active');
+    window.scrollTo(0, 0);
+  }
+  function showTier(id, btn) {
+    document.querySelectorAll('.cp').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tier-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('cp-' + id).classList.add('active');
+    btn.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  /* ── RESET ── */
+  function resetForm() {
+    if (!confirm('Clear all fields and start a new customer?')) return;
+    ['custName','advisor','address','phone','jobNum',
+     'p1','p2','p3',
+     'd1s','d1o','d2s','d2o','d3s','d3o','d4s','d4o',
+     'discName','pt1','pt2','pt3','down'
+    ].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('club').checked = false;
+    document.getElementById('apr').value = '0.1299';
+    document.getElementById('term1').value = '24';
+    document.getElementById('term2').value = '36';
+    document.getElementById('term3').value = '48';
+    document.getElementById('jobDate').valueAsDate = new Date();
+    calc();
+  }
+
+  /* ── HELPERS ── */
+  function n(id)  { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? 0 : v; }
+  function sv(id) { return document.getElementById(id).value.trim(); }
+  function set(id, val) { document.getElementById(id).textContent = val; }
+
+  function usd(v)  { return '$' + Math.round(v).toLocaleString('en-US'); }
+  function usd2(v) { return '$' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  function mpmt(principal, apr, months) {
+    if (principal <= 0) return 0;
+    if (apr === 0) return principal / months;
+    const r = apr / 12;
+    return principal * r * Math.pow(1+r, months) / (Math.pow(1+r, months) - 1);
+  }
+
+  /* ── MAIN CALC ── */
+  function calc() {
+    /* Discount rows */
+    let totS = 0, totO = 0;
+    for (let i = 1; i <= 4; i++) {
+      const st = n('d'+i+'s'), off = n('d'+i+'o'), net = st - off;
+      const netStr = net === 0 ? '—' : (net > 0 ? '-' : '+') + '$' + Math.abs(Math.round(net)).toLocaleString();
+      set('d'+i+'n', netStr);
+      totS += st; totO += off;
+    }
+    set('totS', usd(totS));
+    set('totO', usd(totO));
+    const totNet = totS - totO;
+    set('totN', totNet === 0 ? '$0' : (totNet > 0 ? '-' : '+') + '$' + Math.abs(Math.round(totNet)).toLocaleString());
+
+    /* Club savings */
+    const isClub = document.getElementById('club').checked;
+    const clubs = {
+      1: isClub ? n('pt1') * 0.1 : 0,
+      2: isClub ? n('pt2') * 0.1 : 0,
+      3: isClub ? n('pt3') * 0.1 : 0
+    };
+    set('cs1', usd(clubs[1]));
+    set('cs2', usd(clubs[2]));
+    set('cs3', usd(clubs[3]));
+
+    /* Pricing & financing */
+    const apr        = parseFloat(document.getElementById('apr').value);
+    const down       = n('down');
+    const discLabel  = sv('discName');
+    const selTerms   = [
+      parseInt(document.getElementById('term1').value),
+      parseInt(document.getElementById('term2').value),
+      parseInt(document.getElementById('term3').value)
+    ];
+    const termSuffix = ['a','b','c'];
+
+    /* Customer info */
+    const name    = sv('custName') || '—';
+    const advisor = sv('advisor')  || '—';
+    const addr    = sv('address');
+    const phone   = sv('phone');
+    const dateStr = (() => {
+      const v = sv('jobDate');
+      if (!v) return '';
+      const d = new Date(v + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    })();
+
+    const dets   = [addr, phone].filter(Boolean).join('   •   ') || '—';
+    const advStr = 'Your Comfort Advisor: ' + advisor + (dateStr ? '   •   ' + dateStr : '');
+
+    /* Summary prefix map */
+    const sumPfx = { 1: 's1', 2: 's2', 3: 's3' };
+
+    [1, 2, 3].forEach(k => {
+      const base       = n('p'+k);
+      const investment = base + totO;
+      const totalDisc  = totS + clubs[k];
+      const custPrice  = Math.max(0, investment - totalDisc);
+      const financed   = Math.max(0, custPrice - down);
+
+      /* Summary table */
+      const px = sumPfx[k];
+      set(px+'Inv', usd(investment));
+      set(px+'Dis', usd(totalDisc));
+      set(px+'Pri', usd(custPrice));
+      /* Best monthly = longest selected term */
+      const longestTerm = Math.max(...selTerms);
+      set(px+'Mo', usd2(mpmt(financed, apr, longestTerm)) + '/mo');
+
+      /* Customer page header */
+      set('n'+k, name);
+      set('d'+k+'x', dets);
+      set('a'+k, advStr);
+      set('inv'+k, usd(investment));
+      set('fin'+k, usd(custPrice));
+
+      /* Discount line */
+      const dlEl = document.getElementById('dl'+k);
+      const dnEl = document.getElementById('dn'+k);
+      if (totalDisc > 0) {
+        dlEl.style.display = 'block';
+        dlEl.textContent   = '— ' + usd(totalDisc) + ' in savings';
+        dnEl.textContent   = discLabel || (isClub ? 'Club Member Discount' : '');
+      } else {
+        dlEl.style.display = 'none';
+        dlEl.textContent   = '';
+        dnEl.textContent   = '— No discounts applied —';
+      }
+
+      /* Monthly payment cards — dynamic terms */
+      selTerms.forEach((mo, idx) => {
+        const sfx = termSuffix[idx];
+        set('t'+k+sfx+'-lbl', mo + ' MONTHS');
+        set('t'+k+sfx+'-amt', usd2(mpmt(financed, apr, mo)));
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
